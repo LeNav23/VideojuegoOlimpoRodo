@@ -15,6 +15,7 @@ let questionShown = false;
 let questionTimer = null;
 let timeRemaining = 10;
 let keysCollected = 0;
+let lives = parseInt(localStorage.getItem('gameVives')) || 3;
 let keysEarned = {
     'scene-escenario1': false,
     'scene-escenario2': false,
@@ -201,14 +202,66 @@ function handleAnswer(selectedIndex, correctIndex) {
             questionShown = false;
         }, 1500);
     } else {
-        // Incorrect answer - show only the incorrect one, then close
+        // Incorrect answer - lose a life
         buttons[selectedIndex].classList.add('incorrect');
+        lives--;
+        updateLivesDisplay();
         
         setTimeout(() => {
             promptElement.remove();
             questionShown = false;
+            
+            if (lives <= 0) {
+                // Game Over - return to index.html
+                gameOver();
+            } else {
+                // Navigate to previous scenario
+                navigateToPreviousScenario();
+            }
         }, 1500);
     }
+}
+
+function updateLivesDisplay() {
+    // The lives display is now handled by updateZeusAlert in the main loop
+    // Save lives to localStorage
+    localStorage.setItem('gameVives', lives);
+    console.log(`Vida perdida. Vidas restantes: ${lives}`);
+}
+
+function gameOver() {
+    // Reset lives for next attempt
+    lives = 3;
+    localStorage.setItem('gameVives', 3);
+    console.log('¡Game Over! Regresando a index.html');
+    setTimeout(() => {
+        window.location.href = 'index.html';
+    }, 500);
+}
+
+function navigateToPreviousScenario() {
+    const sceneClass = Array.from(scene.classList).find(cls => cls.startsWith('scene-'));
+    
+    // Use setTimeout to allow the UI to update
+    setTimeout(() => {
+        switch(sceneClass) {
+            case 'scene-escenario1':
+                window.location.href = 'index.html';
+                break;
+            case 'scene-escenario2':
+                window.location.href = 'escenario1.html';
+                break;
+            case 'scene-escenario3':
+                window.location.href = 'escenario2.html';
+                break;
+            case 'scene-escenario4':
+                window.location.href = 'escenario3.html';
+                break;
+            case 'scene-escenario5':
+                window.location.href = 'escenario4.html';
+                break;
+        }
+    }, 500);
 }
 
 function awardKey() {
@@ -311,9 +364,9 @@ function updateHero(delta) {
 }
 
 function updateZeusAlert(delta) {
-    const intensity = pressedKeys.size > 0 ? 'Atento...' : 'Observando...';
-    if (zeusAlertText && zeusAlertText.textContent !== intensity) {
-        zeusAlertText.textContent = intensity;
+    const zeusAlertText = document.querySelector('.zeus-alert__text');
+    if (zeusAlertText && zeusAlertText.textContent !== `Vidas: ${lives}`) {
+        zeusAlertText.textContent = `Vidas: ${lives}`;
     }
 }
 
@@ -356,6 +409,9 @@ function handleTouchEnd(event) {
 }
 
 if (scene && hero) {
+    // Initialize lives display
+    updateLivesDisplay();
+    
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
