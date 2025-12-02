@@ -405,7 +405,7 @@ img {
     flex: 1;
     position: relative;
     overflow: hidden;
-    background: url("../pngs/olimpo.png") center/cover no-repeat var(--bg-night);
+    background: url("../pngs/puertasolimpo.png") center/cover no-repeat var(--bg-night);
 }
 
 .sky-layer {
