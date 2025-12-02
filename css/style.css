@@ -601,6 +601,24 @@ img {
     background: rgba(255, 255, 255, 0.05);
     color: #fff;
     cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.prompt__choices button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.prompt__choices button.correct {
+    background: rgba(76, 175, 80, 0.7);
+    border-color: #4caf50;
+    color: #fff;
+}
+
+.prompt__choices button.incorrect {
+    background: rgba(244, 67, 54, 0.7);
+    border-color: #f44336;
+    color: #fff;
 }
 
 .prompt__timer {
@@ -613,4 +631,23 @@ img {
     .hud {
         grid-template-columns: 1fr;
     }
+}
+
+.victory-screen {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.victory-image {
+    max-width: 90vw;
+    max-height: 90vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
 }

@@ -2,13 +2,55 @@ const scene = document.querySelector('.scene');
 const hero = document.getElementById('hero');
 const mobileButtons = document.querySelectorAll('.mobile-controls .control');
 const zeusAlertText = document.querySelector('.zeus-alert__text');
+const cajaPandora = document.querySelector('.caja-pandora');
 
 const pressedKeys = new Set();
 const speed = 220; // px per second
+const proximityDistance = 100; // Distance to trigger question
 
 let heroX = 0;
 let heroY = 0;
 let lastTime = performance.now();
+let questionShown = false;
+let questionTimer = null;
+let timeRemaining = 10;
+let keysCollected = 0;
+let keysEarned = {
+    'scene-escenario1': false,
+    'scene-escenario2': false,
+    'scene-escenario3': false,
+    'scene-escenario4': false,
+    'scene-escenario5': false
+};
+
+// Define questions for each scenario
+const scenarioQuestions = {
+    'scene-escenario1': {
+        question: '¿Qué significa el prefijo Cardio?',
+        options: ['Corazón', 'Amor', 'Tiempo'],
+        correct: 0
+    },
+    'scene-escenario2': {
+        question: '¿Qué significa el prefijo Crono?',
+        options: ['Cine', 'Vista', 'Tiempo'],
+        correct: 2
+    },
+    'scene-escenario3': {
+        question: '¿Qué significa el prefijo Kilo?',
+        options: ['Mil', 'Sonido', 'Tierra'],
+        correct: 0
+    },
+    'scene-escenario4': {
+        question: '¿Qué significa la raíz Polis?',
+        options: ['Dolor', 'Ciudad', 'Pie'],
+        correct: 1
+    },
+    'scene-escenario5': {
+        question: '¿Qué significa el prefijo Bio?',
+        options: ['Animal', 'Bacteria', 'Vida'],
+        correct: 2
+    }
+};
 
 function initHeroPosition() {
     if (!hero) return;
@@ -49,6 +91,197 @@ function getDirection() {
     return { dirX, dirY };
 }
 
+function getDistance(x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function showQuestion() {
+    if (questionShown || !scene) return;
+    
+    const sceneClass = Array.from(scene.classList).find(cls => cls.startsWith('scene-'));
+    const questionData = scenarioQuestions[sceneClass];
+    
+    if (!questionData) return;
+    
+    questionShown = true;
+    timeRemaining = 10;
+    
+    const template = document.getElementById('prompt-template');
+    if (!template) return;
+    
+    const promptElement = template.content.cloneNode(true);
+    const promptTitle = promptElement.querySelector('h2');
+    const promptText = promptElement.querySelector('.prompt__text');
+    const promptChoices = promptElement.querySelector('.prompt__choices');
+    const promptTimer = promptElement.querySelector('.prompt__timer');
+    
+    promptTitle.textContent = 'Pregunta de raíces griegas';
+    promptText.textContent = `"${questionData.question}"`;
+    promptTimer.textContent = `${timeRemaining}s`;
+    
+    // Clear existing options
+    promptChoices.innerHTML = '';
+    
+    // Add new options
+    questionData.options.forEach((option, index) => {
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = option;
+        button.dataset.index = index;
+        li.appendChild(button);
+        promptChoices.appendChild(li);
+    });
+    
+    const prompt = promptElement.querySelector('.prompt');
+    prompt.classList.add('is-active');
+    
+    document.body.appendChild(promptElement);
+    
+    // Add click handlers to buttons after they're in the DOM
+    const buttons = document.querySelectorAll('.prompt.is-active .prompt__choices button');
+    buttons.forEach((button, index) => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleAnswer(index, questionData.correct);
+        });
+    });
+    
+    // Start countdown timer
+    startQuestionTimer(questionData);
+}
+
+function startQuestionTimer(questionData) {
+    if (questionTimer) clearInterval(questionTimer);
+    
+    questionTimer = setInterval(() => {
+        timeRemaining--;
+        const promptElement = document.querySelector('.prompt.is-active');
+        const timerDisplay = promptElement?.querySelector('.prompt__timer');
+        if (timerDisplay) {
+            timerDisplay.textContent = `${timeRemaining}s`;
+        }
+        
+        if (timeRemaining <= 0) {
+            clearInterval(questionTimer);
+            questionTimer = null;
+            // Time's up, repeat the question
+            const prompt = document.querySelector('.prompt.is-active');
+            if (prompt) prompt.remove();
+            questionShown = false;
+            // Wait a moment before showing the question again
+            setTimeout(() => {
+                showQuestion();
+            }, 500);
+        }
+    }, 1000);
+}
+
+function handleAnswer(selectedIndex, correctIndex) {
+    // Clear the timer
+    if (questionTimer) {
+        clearInterval(questionTimer);
+        questionTimer = null;
+    }
+    
+    const promptElement = document.querySelector('.prompt.is-active');
+    if (!promptElement) return;
+    
+    const buttons = promptElement.querySelectorAll('.prompt__choices button');
+    
+    if (selectedIndex === correctIndex) {
+        // Correct answer - show correct and award key
+        buttons[selectedIndex].classList.add('correct');
+        awardKey();
+        
+        setTimeout(() => {
+            promptElement.remove();
+            questionShown = false;
+        }, 1500);
+    } else {
+        // Incorrect answer - show only the incorrect one, then close
+        buttons[selectedIndex].classList.add('incorrect');
+        
+        setTimeout(() => {
+            promptElement.remove();
+            questionShown = false;
+        }, 1500);
+    }
+}
+
+function awardKey() {
+    const sceneClass = Array.from(scene.classList).find(cls => cls.startsWith('scene-'));
+    
+    // Check if already earned in this scenario
+    if (keysEarned[sceneClass]) {
+        return;
+    }
+    
+    // Mark as earned in this scenario
+    keysEarned[sceneClass] = true;
+    keysCollected++;
+    
+    // Update UI
+    const keys = document.querySelectorAll('.key');
+    if (keys[keysCollected - 1]) {
+        keys[keysCollected - 1].setAttribute('data-active', 'true');
+    }
+    
+    console.log(`¡Llave obtenida! Total: ${keysCollected}/5`);
+    
+    // Navigate to next scenario
+    navigateToNextScenario(sceneClass);
+}
+
+function navigateToNextScenario(currentScene) {
+    // Use setTimeout to allow the UI to update and question to close
+    setTimeout(() => {
+        switch(currentScene) {
+            case 'scene-escenario1':
+                window.location.href = 'escenario2.html';
+                break;
+            case 'scene-escenario2':
+                window.location.href = 'escenario3.html';
+                break;
+            case 'scene-escenario3':
+                window.location.href = 'escenario4.html';
+                break;
+            case 'scene-escenario4':
+                window.location.href = 'escenario5.html';
+                break;
+            case 'scene-escenario5':
+                // All keys collected, go to victory screen
+                window.location.href = 'index.html?victory=true';
+                break;
+        }
+    }, 2000);
+}
+
+function checkProximityToCaja() {
+    if (!cajaPandora || !hero || questionShown) return;
+    
+    const heroBounds = hero.getBoundingClientRect();
+    const cajaBounds = cajaPandora.getBoundingClientRect();
+    
+    const heroCenter = {
+        x: heroBounds.left + heroBounds.width / 2,
+        y: heroBounds.top + heroBounds.height / 2
+    };
+    
+    const cajaCenter = {
+        x: cajaBounds.left + cajaBounds.width / 2,
+        y: cajaBounds.top + cajaBounds.height / 2
+    };
+    
+    const distance = getDistance(heroCenter.x, heroCenter.y, cajaCenter.x, cajaCenter.y);
+    
+    if (distance < proximityDistance) {
+        showQuestion();
+    }
+}
+
 function updateHero(delta) {
     if (!scene || !hero) return;
     const bounds = scene.getBoundingClientRect();
@@ -73,6 +306,8 @@ function updateHero(delta) {
     } else if (dirX > 0) {
         hero.dataset.facing = 'right';
     }
+    
+    checkProximityToCaja();
 }
 
 function updateZeusAlert(delta) {

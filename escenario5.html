@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escape del Olimpo</title>
-    <link rel="preload" href="pngs/olimpo.png" as="image">
+    <title>Escenario 5 - Escape del Olimpo</title>
+    <link rel="preload" href="pngs/Escenario5.png" as="image">
     <link rel="preload" href="pngs/maincharacter.png" as="image">
+    <link rel="preload" href="pngs/Zeus2.png" as="image">
+    <link rel="preload" href="pngs/CajaPandora.png" as="image">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -14,29 +16,33 @@
             <p class="hud__label">Módulo I · Llaves</p>
             <div class="key-meter" role="status" aria-label="Llaves obtenidas">
                 <span class="key" data-active="true"></span>
-                <span class="key"></span>
-                <span class="key"></span>
-                <span class="key"></span>
-                <span class="key"></span>
+                <span class="key" data-active="true"></span>
+                <span class="key" data-active="true"></span>
+                <span class="key" data-active="true"></span>
+                <span class="key" data-active="true"></span>
             </div>
-            <small class="hud__note">Reúne cinco para abrir el Olimpo.</small>
+            <small class="hud__note">¡Todas las llaves reunidas! ¡Abre el Olimpo!</small>
         </section>
         <section class="hud__block">
             <p class="hud__label">Módulo II · Zeus</p>
             <div class="zeus-alert">
                 <span class="zeus-alert__pulse"></span>
-                <span class="zeus-alert__text">Observando...</span>
+                <span class="zeus-alert__text">¡Encolerizado!</span>
             </div>
         </section>
         <section class="hud__block">
             <p class="hud__label">Módulo III · Ruta</p>
-            <p class="hud__story">Activa cada caja y responde rápido las raíces griegas para evitar el rayo.</p>
+            <p class="hud__story">Escenario 5: Has llegado al Olimpo. ¡Derrota a Zeus y completa tu destino!</p>
         </section>
     </header>
 
-    <main class="scene scene-olympus" role="application" aria-label="Escenario inicial: puertas del Olimpo">
+    <main class="scene scene-escenario5" role="application" aria-label="Escenario 5" style="background-image: url('pngs/Escenario5.png');">
         <div class="sky-layer sky-layer--clouds"></div>
         <div class="sky-layer sky-layer--sparks"></div>
+
+        <div class="zeus-image" style="position: absolute; top: 0; right: 0; z-index: 10;">
+            <img src="pngs/Zeus2.png" alt="Zeus observando" style="max-width: 200px; height: auto;">
+        </div>
 
         <div class="ground" aria-hidden="true"></div>
 
@@ -44,8 +50,8 @@
             <img src="pngs/maincharacter.png" alt="Personaje principal">
         </div>
 
-        <div class="victory-screen" id="victoryScreen" style="display: none;">
-            <img src="pngs/VictoryRoyale.png" alt="¡Victoria!" class="victory-image">
+        <div class="caja-pandora" style="position: absolute; bottom: 80px; right: 120px; z-index: 5;">
+            <img src="pngs/CajaPandora.png" alt="Caja de Pandora" style="width: 80px; height: auto;">
         </div>
 
         <div class="mobile-controls" aria-hidden="true">
@@ -70,19 +76,5 @@
     </template>
 
     <script src="js/game.js" defer></script>
-    <script>
-        // Check if we're on victory screen
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('victory') === 'true') {
-            document.addEventListener('DOMContentLoaded', () => {
-                const victoryScreen = document.getElementById('victoryScreen');
-                const hero = document.getElementById('hero');
-                if (victoryScreen && hero) {
-                    hero.style.display = 'none';
-                    victoryScreen.style.display = 'flex';
-                }
-            });
-        }
-    </script>
 </body>
 </html>
