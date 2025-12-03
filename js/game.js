@@ -1,12 +1,22 @@
 const scene = document.querySelector('.scene');
 const hero = document.getElementById('hero');
 const mobileButtons = document.querySelectorAll('.mobile-controls .control');
-const zeusAlertText = document.querySelector('.zeus-alert__text');
 const cajaPandora = document.querySelector('.caja-pandora');
+const keyIcons = document.querySelectorAll('.key-icon');
+const hudDialogue = document.getElementById('hudDialogue');
+const zeusIntro = document.getElementById('zeusIntro');
+const zeusDialogueBubble = document.getElementById('zeusDialogueBubble');
+const zeusDialogueText = document.getElementById('zeusDialogueText');
+const gateTrigger = document.getElementById('gateTrigger');
+const gateMessage = document.getElementById('gateMessage');
+const victoryScreen = document.getElementById('victoryScreen');
 
 const pressedKeys = new Set();
 const speed = 220; // px per second
 const proximityDistance = 100; // Distance to trigger question
+const isHomeScene = document.body.classList.contains('page-home');
+const urlParams = new URLSearchParams(window.location.search);
+const hasVictoryFlag = urlParams.get('victory') === 'true';
 
 let heroX = 0;
 let heroY = 0;
@@ -14,8 +24,10 @@ let lastTime = performance.now();
 let questionShown = false;
 let questionTimer = null;
 let timeRemaining = 10;
+let gateEntered = false;
+let typingIntervalId = null;
+let lives = Number(localStorage.getItem('gameVives')) || 3;
 let keysCollected = 0;
-let lives = parseInt(localStorage.getItem('gameVives')) || 3;
 let keysEarned = {
     'scene-escenario1': false,
     'scene-escenario2': false,
@@ -96,6 +108,127 @@ function getDistance(x1, y1, x2, y2) {
     const dx = x2 - x1;
     const dy = y2 - y1;
     return Math.sqrt(dx * dx + dy * dy);
+}
+
+function setDialogue(message) {
+    if (hudDialogue) {
+        hudDialogue.textContent = message;
+    }
+}
+
+function setZeusSpeakingState(isSpeaking) {
+    if (zeusIntro) {
+        zeusIntro.classList.toggle('is-speaking', isSpeaking);
+    }
+    if (zeusDialogueBubble) {
+        zeusDialogueBubble.classList.toggle('is-visible', isSpeaking);
+    }
+}
+
+function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function typeText(element, text, speed = 45) {
+    if (!element) return Promise.resolve();
+    if (typingIntervalId) {
+        clearInterval(typingIntervalId);
+        typingIntervalId = null;
+    }
+
+    element.textContent = '';
+
+    return new Promise((resolve) => {
+        let index = 0;
+        typingIntervalId = setInterval(() => {
+            element.textContent += text.charAt(index);
+            index += 1;
+
+            if (index >= text.length) {
+                clearInterval(typingIntervalId);
+                typingIntervalId = null;
+                resolve();
+            }
+        }, speed);
+    });
+}
+
+async function playZeusIntro() {
+    if (!isHomeScene || !zeusIntro || !zeusDialogueText || !zeusDialogueBubble) return;
+
+    const lines = [
+        'Bienvenida al Olimpo, estás en mi territorio ahora.',
+        'Solo encontrando las 5 llaves en cada cofre de cada mundo dentro del Olimpo podrás escapar de aquí.'
+    ];
+
+    zeusIntro.classList.remove('is-hidden');
+    zeusDialogueBubble.classList.remove('is-hidden');
+
+    await delay(3500);
+
+    zeusIntro.classList.add('is-visible');
+    setZeusSpeakingState(true);
+
+    setZeusSpeakingState(true);
+    await typeText(zeusDialogueText, lines[0]);
+    setDialogue(lines[0]);
+
+    await delay(6000);
+
+    await typeText(zeusDialogueText, lines[1]);
+    setDialogue(lines[1]);
+
+    await delay(6000);
+
+    setZeusSpeakingState(false);
+    zeusIntro.classList.remove('is-visible');
+    zeusDialogueBubble.classList.remove('is-visible');
+    await delay(2400);
+    zeusIntro.classList.add('is-hidden');
+    zeusDialogueBubble.classList.add('is-hidden');
+}
+
+function rectanglesOverlap(rectA, rectB) {
+    return (
+        rectA.left < rectB.right &&
+        rectA.right > rectB.left &&
+        rectA.top < rectB.bottom &&
+        rectA.bottom > rectB.top
+    );
+}
+
+function checkGateEntry() {
+    if (!isHomeScene || hasVictoryFlag || !gateTrigger || gateEntered || !hero) return;
+
+    const heroBounds = hero.getBoundingClientRect();
+    const gateBounds = gateTrigger.getBoundingClientRect();
+
+    if (rectanglesOverlap(heroBounds, gateBounds)) {
+        gateEntered = true;
+        gateTrigger.classList.add('is-active');
+        if (gateMessage) {
+            gateMessage.textContent = 'Atravesando la puerta...';
+        }
+        setDialogue('Demuestra tu valor en el primer mundo.');
+
+        setTimeout(() => {
+            window.location.href = 'escenario1.html';
+        }, 1000);
+    }
+}
+
+function initVictoryState() {
+    if (!hasVictoryFlag) return;
+
+    if (hero) {
+        hero.style.display = 'none';
+    }
+    if (victoryScreen) {
+        victoryScreen.style.display = 'flex';
+    }
+    keyIcons.forEach((icon) => icon.classList.add('is-active'));
+    keysCollected = keyIcons.length;
+    setDialogue('¡Has escapado del Olimpo!');
 }
 
 function showQuestion() {
@@ -276,10 +409,9 @@ function awardKey() {
     keysEarned[sceneClass] = true;
     keysCollected++;
     
-    // Update UI
-    const keys = document.querySelectorAll('.key');
-    if (keys[keysCollected - 1]) {
-        keys[keysCollected - 1].setAttribute('data-active', 'true');
+    const nextIcon = keyIcons[keysCollected - 1];
+    if (nextIcon) {
+        nextIcon.classList.add('is-active');
     }
     
     console.log(`¡Llave obtenida! Total: ${keysCollected}/5`);
@@ -364,9 +496,9 @@ function updateHero(delta) {
 }
 
 function updateZeusAlert(delta) {
-    const zeusAlertText = document.querySelector('.zeus-alert__text');
-    if (zeusAlertText && zeusAlertText.textContent !== `Vidas: ${lives}`) {
-        zeusAlertText.textContent = `Vidas: ${lives}`;
+    const intensity = pressedKeys.size > 0 ? 'Atento...' : 'Observando...';
+    if (zeusAlertText && zeusAlertText.textContent !== intensity) {
+        zeusAlertText.textContent = intensity;
     }
 }
 
@@ -375,7 +507,7 @@ function loop(now) {
     lastTime = now;
 
     updateHero(delta);
-    updateZeusAlert(delta);
+    checkGateEntry();
 
     requestAnimationFrame(loop);
 }
@@ -427,5 +559,10 @@ if (scene && hero) {
     });
 
     initHeroPosition();
+    if (hasVictoryFlag) {
+        initVictoryState();
+    } else if (isHomeScene) {
+        playZeusIntro();
+    }
     requestAnimationFrame(loop);
 }

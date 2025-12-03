@@ -10,29 +10,17 @@
     <link rel="preload" href="pngs/CajaPandora.png" as="image">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-    <header class="hud" aria-live="polite">
-        <section class="hud__block">
-            <p class="hud__label">Módulo I · Llaves</p>
-            <div class="key-meter" role="status" aria-label="Llaves obtenidas">
-                <span class="key" data-active="true"></span>
-                <span class="key" data-active="true"></span>
-                <span class="key" data-active="true"></span>
-                <span class="key" data-active="true"></span>
-                <span class="key"></span>
+<body class="page-scenario">
+    <header class="hud">
+        <section class="hud__block hud__block--keys">
+            <p class="hud__label">Llaves</p>
+            <div class="key-tray" role="status" aria-label="Llaves obtenidas">
+                <img src="pngs/key.png" alt="Llave 1" class="key-icon is-active" data-key-index="1">
+                <img src="pngs/key.png" alt="Llave 2" class="key-icon is-active" data-key-index="2">
+                <img src="pngs/key.png" alt="Llave 3" class="key-icon is-active" data-key-index="3">
+                <img src="pngs/key.png" alt="Llave 4" class="key-icon" data-key-index="4">
+                <img src="pngs/key.png" alt="Llave 5" class="key-icon" data-key-index="5">
             </div>
-            <small class="hud__note">Reúne cinco para abrir el Olimpo.</small>
-        </section>
-        <section class="hud__block">
-            <p class="hud__label">Módulo II · Zeus</p>
-            <div class="zeus-alert">
-                <span class="zeus-alert__pulse"></span>
-                <span class="zeus-alert__text">¡Furioso!</span>
-            </div>
-        </section>
-        <section class="hud__block">
-            <p class="hud__label">Módulo III · Ruta</p>
-            <p class="hud__story">Escenario 4: Casi estás dentro. Zeus se enfurece. ¡Una última prueba!</p>
         </section>
     </header>
 
