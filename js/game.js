@@ -82,10 +82,28 @@ function initHeroPosition() {
 }
 
 function initZeusPosition() {
-    if (!zeusElement) return;
-    const style = window.getComputedStyle(zeusElement);
-    zeusX = parseFloat(style.right) || 0;
-    zeusY = parseFloat(style.top) || 0;
+    if (!zeusElement || !scene) return;
+    
+    // Initialize Zeus to bottom-right corner for Escenario 1
+    const sceneClass = Array.from(scene.classList).find(cls => cls.startsWith('scene-'));
+    
+    if (sceneClass === 'scene-escenario1') {
+        // Escenario 1: bottom-right
+        zeusElement.style.right = '0px';
+        zeusElement.style.bottom = '0px';
+        zeusElement.style.left = 'auto';
+        zeusElement.style.top = 'auto';
+        zeusX = 0;
+        zeusY = 0;
+    } else {
+        // Escenarios 2-5: bottom-left
+        zeusElement.style.left = '0px';
+        zeusElement.style.bottom = '0px';
+        zeusElement.style.right = 'auto';
+        zeusElement.style.top = 'auto';
+        zeusX = 0;
+        zeusY = 0;
+    }
 }
 
 function clamp(value, min, max) {
@@ -519,44 +537,55 @@ function updateHero(delta) {
 function updateZeus(delta) {
     if (!zeusElement || !hero || !scene || questionShown) return;
     
-    const bounds = scene.getBoundingClientRect();
     const heroBounds = hero.getBoundingClientRect();
     const zeusBounds = zeusElement.getBoundingClientRect();
+    const sceneBounds = scene.getBoundingClientRect();
     
-    // Calculate direction from Zeus to Hero
+    // Calculate centers
     const heroCenterX = heroBounds.left + heroBounds.width / 2;
-    const herosCenterY = heroBounds.top + heroBounds.height / 2;
+    const heroCenterY = heroBounds.top + heroBounds.height / 2;
     const zeusCenterX = zeusBounds.left + zeusBounds.width / 2;
     const zeusCenterY = zeusBounds.top + zeusBounds.height / 2;
     
+    // Calculate direction vector
     const dx = heroCenterX - zeusCenterX;
-    const dy = herosCenterY - zeusCenterY;
+    const dy = heroCenterY - zeusCenterY;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
-    if (distance > 0) {
-        const dirX = dx / distance;
-        const dirY = dy / distance;
+    if (distance > 1) {
+        // Normalize and apply speed
+        const moveX = (dx / distance) * zeusSpeed * delta;
+        const moveY = (dy / distance) * zeusSpeed * delta;
         
-        // Update Zeus position
-        zeusX += dirX * zeusSpeed * delta;
-        zeusY += dirY * zeusSpeed * delta;
+        // Update position tracking variables
+        zeusX += moveX;
+        zeusY += moveY;
         
-        // Apply bounds
-        zeusX = clamp(zeusX, 0, bounds.width - zeusBounds.width);
-        zeusY = clamp(zeusY, 0, bounds.height - zeusBounds.height);
-        
-        // Determine which position property to use based on current scenario
+        // Get scene class to determine positioning method
         const sceneClass = Array.from(scene.classList).find(cls => cls.startsWith('scene-'));
+        
         if (sceneClass === 'scene-escenario1') {
-            // Escenario 1: Zeus on right
+            // Escenario 1: Use right and bottom positioning
+            // zeusX represents distance from right, zeusY represents distance from bottom
+            const maxRight = sceneBounds.width - zeusBounds.width;
+            const maxBottom = sceneBounds.height - zeusBounds.height;
+            
+            zeusX = clamp(zeusX, 0, maxRight);
+            zeusY = clamp(zeusY, 0, maxBottom);
+            
             zeusElement.style.right = `${zeusX}px`;
-            zeusElement.style.left = 'auto';
+            zeusElement.style.bottom = `${zeusY}px`;
         } else {
-            // Escenarios 2-5: Zeus on left
+            // Escenarios 2-5: Use left and bottom positioning
+            const maxLeft = sceneBounds.width - zeusBounds.width;
+            const maxBottom = sceneBounds.height - zeusBounds.height;
+            
+            zeusX = clamp(zeusX, 0, maxLeft);
+            zeusY = clamp(zeusY, 0, maxBottom);
+            
             zeusElement.style.left = `${zeusX}px`;
-            zeusElement.style.right = 'auto';
+            zeusElement.style.bottom = `${zeusY}px`;
         }
-        zeusElement.style.top = `${zeusY}px`;
     }
 }
 
