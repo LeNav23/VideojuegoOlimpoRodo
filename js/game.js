@@ -28,6 +28,10 @@ let gateEntered = false;
 let typingIntervalId = null;
 let lives = Number(localStorage.getItem('gameVives')) || 3;
 let keysCollected = 0;
+let zeusX = 0;
+let zeusY = 0;
+let zeusSpeed = 80; // px per second (slower than hero)
+const zeusElement = document.querySelector('.zeus-image');
 let keysEarned = {
     'scene-escenario1': false,
     'scene-escenario2': false,
@@ -39,27 +43,27 @@ let keysEarned = {
 // Define questions for each scenario
 const scenarioQuestions = {
     'scene-escenario1': {
-        question: '¿Qué significa el prefijo Cardio?',
+        question: '¿Qué significa la palabra Cardio?',
         options: ['Corazón', 'Amor', 'Tiempo'],
         correct: 0
     },
     'scene-escenario2': {
-        question: '¿Qué significa el prefijo Crono?',
+        question: '¿Qué significa la palabra Crono?',
         options: ['Cine', 'Vista', 'Tiempo'],
         correct: 2
     },
     'scene-escenario3': {
-        question: '¿Qué significa el prefijo Kilo?',
+        question: '¿Qué significa la palabra Kilo?',
         options: ['Mil', 'Sonido', 'Tierra'],
         correct: 0
     },
     'scene-escenario4': {
-        question: '¿Qué significa la raíz Polis?',
+        question: '¿Qué significa la palabra Polis?',
         options: ['Dolor', 'Ciudad', 'Pie'],
         correct: 1
     },
     'scene-escenario5': {
-        question: '¿Qué significa el prefijo Bio?',
+        question: '¿Qué significa la palabra Bio?',
         options: ['Animal', 'Bacteria', 'Vida'],
         correct: 2
     }
@@ -75,6 +79,13 @@ function initHeroPosition() {
     if (!hero.dataset.facing) {
         hero.dataset.facing = 'right';
     }
+}
+
+function initZeusPosition() {
+    if (!zeusElement) return;
+    const style = window.getComputedStyle(zeusElement);
+    zeusX = parseFloat(style.right) || 0;
+    zeusY = parseFloat(style.top) || 0;
 }
 
 function clamp(value, min, max) {
@@ -374,25 +385,33 @@ function gameOver() {
 
 function navigateToPreviousScenario() {
     const sceneClass = Array.from(scene.classList).find(cls => cls.startsWith('scene-'));
+    console.log('Current scene class:', sceneClass);
     
     // Use setTimeout to allow the UI to update
     setTimeout(() => {
         switch(sceneClass) {
             case 'scene-escenario1':
+                console.log('Navigating from escenario1 to index.html');
                 window.location.href = 'index.html';
                 break;
             case 'scene-escenario2':
+                console.log('Navigating from escenario2 to escenario1');
                 window.location.href = 'escenario1.html';
                 break;
             case 'scene-escenario3':
+                console.log('Navigating from escenario3 to escenario2');
                 window.location.href = 'escenario2.html';
                 break;
             case 'scene-escenario4':
+                console.log('Navigating from escenario4 to escenario3');
                 window.location.href = 'escenario3.html';
                 break;
             case 'scene-escenario5':
+                console.log('Navigating from escenario5 to escenario4');
                 window.location.href = 'escenario4.html';
                 break;
+            default:
+                console.log('Scene class not recognized:', sceneClass);
         }
     }, 500);
 }
@@ -493,6 +512,70 @@ function updateHero(delta) {
     }
     
     checkProximityToCaja();
+    updateZeus(delta);
+    checkZeusCollision();
+}
+
+function updateZeus(delta) {
+    if (!zeusElement || !hero || !scene || questionShown) return;
+    
+    const bounds = scene.getBoundingClientRect();
+    const heroBounds = hero.getBoundingClientRect();
+    const zeusBounds = zeusElement.getBoundingClientRect();
+    
+    // Calculate direction from Zeus to Hero
+    const heroCenterX = heroBounds.left + heroBounds.width / 2;
+    const herosCenterY = heroBounds.top + heroBounds.height / 2;
+    const zeusCenterX = zeusBounds.left + zeusBounds.width / 2;
+    const zeusCenterY = zeusBounds.top + zeusBounds.height / 2;
+    
+    const dx = heroCenterX - zeusCenterX;
+    const dy = herosCenterY - zeusCenterY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance > 0) {
+        const dirX = dx / distance;
+        const dirY = dy / distance;
+        
+        // Update Zeus position
+        zeusX += dirX * zeusSpeed * delta;
+        zeusY += dirY * zeusSpeed * delta;
+        
+        // Apply bounds
+        zeusX = clamp(zeusX, 0, bounds.width - zeusBounds.width);
+        zeusY = clamp(zeusY, 0, bounds.height - zeusBounds.height);
+        
+        // Determine which position property to use based on current scenario
+        const sceneClass = Array.from(scene.classList).find(cls => cls.startsWith('scene-'));
+        if (sceneClass === 'scene-escenario1') {
+            // Escenario 1: Zeus on right
+            zeusElement.style.right = `${zeusX}px`;
+            zeusElement.style.left = 'auto';
+        } else {
+            // Escenarios 2-5: Zeus on left
+            zeusElement.style.left = `${zeusX}px`;
+            zeusElement.style.right = 'auto';
+        }
+        zeusElement.style.top = `${zeusY}px`;
+    }
+}
+
+function checkZeusCollision() {
+    if (!zeusElement || !hero || questionShown) return;
+    
+    const heroBounds = hero.getBoundingClientRect();
+    const zeusBounds = zeusElement.getBoundingClientRect();
+    
+    // Simple AABB collision
+    if (rectanglesOverlap(heroBounds, zeusBounds)) {
+        // Game Over - caught by Zeus
+        console.log('¡Zeus te atrapó! Regresando a index.html');
+        lives = 3;
+        localStorage.setItem('gameVives', 3);
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 500);
+    }
 }
 
 function updateZeusAlert(delta) {
@@ -556,9 +639,11 @@ if (scene && hero) {
 
     window.addEventListener('resize', () => {
         initHeroPosition();
+        initZeusPosition();
     });
 
     initHeroPosition();
+    initZeusPosition();
     if (hasVictoryFlag) {
         initVictoryState();
     } else if (isHomeScene) {
